@@ -1,0 +1,40 @@
+{
+    "name": "source",
+    "version": "0.0.1",
+    "libName": "nodeTsTpl",
+    "main": "dist/nodeTsTpl.cjs.js",
+    "module": "dist/nodeTsTpl.esm.js",
+    "description": "精致玲珑，内有乾坤。这是一套根据接口schema动态生成项目model层和service层的nodejs库，可以生成typescript版本和javascript版本，让你节省大量的实现单调重复的逻辑",
+    "scripts": {
+        "dev": "source/node_modules/.bin/ttsc ./src/index.ts -w",
+        "build": "cp -rf src ./output & cd ./output & rollup -c"
+    },
+    "author": "tangwenhui1",
+    "license": "ISC",
+    "homepage": "https://github.com/kiner-tang/node-ts-template.git",
+    "repository": {
+        "url": "https://github.com/kiner-tang/node-ts-template.git"
+    },
+    "dependencies": {
+        "@types/node": "^12.0.4",
+        "fs-extra": "9.0.1",
+        "typescript": "^3.5.1"
+    },
+    "devDependencies": {
+        "@types/fs-extra": "9.0.2",
+        "@types/ms": "0.7.31",
+        "@zerollup/ts-transform-paths": "1.7.18",
+        "rollup": "2.38.5",
+        "rollup-plugin-babel": "4.4.0",
+        "rollup-plugin-commonjs": "10.1.0",
+        "rollup-plugin-node-resolve": "5.2.0",
+        "rollup-plugin-typescript": "1.0.1",
+        "ts-node": "9.1.1",
+        "tslib": "2.1.0",
+        "tslint": "^5.17.0",
+        "ttypescript": "1.5.12"
+    },
+    "tplVersion": "master",
+    "email": "tangwenhui1@yy.com",
+    "pkgManager": "yarn"
+}

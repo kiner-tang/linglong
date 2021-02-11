@@ -1,0 +1,32 @@
+{
+  "extend": {
+    "prompt": [
+      {
+        "type": "input",
+        "message": "请输入项目描述",
+        "name": "description",
+        "default": "基于Typescript的Nodejs工具项目模版"
+      },
+      {
+        "type": "input",
+        "message": "版本号",
+        "name": "version",
+        "default": "0.0.1"
+      },
+      {
+        "type": "input",
+        "message": "程序入口文件",
+        "name": "entry",
+        "default": "./src/index.ts"
+      }
+    ],
+    "updatePkg": {
+      "description": "{{description}}",
+      "version": "{{version}}",
+      "scripts": {
+        "dev": "ttsc {{entry}} -w",
+        "build": "cp -rf ./src ./output & cd ./output & rollup -c"
+      }
+    }
+  }
+}
