@@ -50,6 +50,12 @@
       "@/*": [
         "src/*"
       ],
+      "@/main/*": [
+        "src/main/*"
+      ],
+      "@/config/*": [
+        "src/config/*"
+      ],
       "@/common/*": [
         "src/common/*"
       ],
