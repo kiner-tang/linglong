@@ -14,7 +14,7 @@ const args = yargs(process.argv).argv;
 
 export class Entry {
   public async init() {
-    const dataSource = await DataSource(args.ds as string);
+    const dataSource = await DataSource(args.ds as string, args.mock === 'true');
     const outputDir = path.resolve(process.cwd(), args.sourceDir as string || sourceDir);
     await pipeline(
       dataSource,

@@ -1,41 +1,141 @@
 import { modelDir } from '@/config/index.ts';
 import {
-  ApiStruct, RequestParamStruct, SchemaTypeStruct, SwaggerStruct,
+  BaseDepDataStruct,
+  ApiStruct,
+  DefinitionsItemStruct,
+  RequestParamStruct,
+  SchemaTypeStruct,
+  SwaggerStruct, ResponseBodyStruct,
 } from '@/inner/swagger.ts';
-import { createInterface, getTsTypeBySwaggerType } from '@/utils/astHelper.ts';
+
+import { createInterface, getStrTypeBySwaggerType, getTsTypeBySwaggerType } from '@/utils/astHelper.ts';
 import {
-  createBaseAst, getBaseApiFromApiPath, normalizeUri, upperCamelize,
+  addCommentBlock,
+  CommentParamsOptionStruct,
+  createBaseAst, createStructName,
+  getBaseApiFromApiPath,
+  normalizeUri, optionalParams,
+  upperCamelize,
 } from '@/utils/index.ts';
-import {
-  File, tsExpressionWithTypeArguments, TSInterfaceBody, TSTypeElement,
-} from '@babel/types';
-import fs from 'fs';
-import path from 'path';
+import { File, TSInterfaceBody, TSTypeElement } from '@babel/types';
 
 const {
   tsInterfaceBody,
   tsPropertySignature,
-  Identifier,
+  tsTypeReference,
+  identifier,
+  addComment,
+  tsTypeAnnotation,
 } = require('@babel/types');
 
-function createInterfaceBodyByParams(params: RequestParamStruct[]): TSInterfaceBody {
-  return tsInterfaceBody(params.map<TSTypeElement>((item: RequestParamStruct) => {
-    if (item.schema) {
-      return tsPropertySignature(
-        Identifier(item.name),
-        getTsTypeBySwaggerType(SchemaTypeStruct.object),
-      );
-    } if (item.type) {
-      return tsPropertySignature(
-        Identifier(item.name),
-        getTsTypeBySwaggerType(item.type),
-      );
-    }
-    return tsPropertySignature(
-      Identifier(item.name),
-      getTsTypeBySwaggerType(SchemaTypeStruct.object),
+/**
+ * 创建依赖对象的结构体（包含对象的每个属性的描述）
+ * @param {DefinitionsItemStruct} dep 依赖对象
+ * @param {File} ast 抽象语法树
+ */
+function createObjectInterface(dep: DefinitionsItemStruct, ast: File): TSInterfaceBody {
+  if (!dep || !dep?.properties) {
+    return tsInterfaceBody([]);
+  }
+  const propKeys = Object.keys(dep.properties || {});
+  return tsInterfaceBody(propKeys.map((propKey: string) => {
+    const prop = dep!.properties![propKey];
+    const node = tsPropertySignature(
+      identifier(propKey),
+      getTsTypeBySwaggerType(prop?.type, prop?.format),
     );
+    addComment(node, 'leading', prop?.description || prop?.title || '', true);
+    return node;
   }));
+}
+
+function createInterfaceBodyItem<T extends BaseDepDataStruct>(item: T, ast: File): TSTypeElement {
+  if (item.schema) {
+    if (item.dep) {
+      const dep = createInterface({
+        name: upperCamelize(`${createStructName(item.name)}`),
+        body: createObjectInterface(item.dep as DefinitionsItemStruct, ast),
+      });
+
+      const commentParams: CommentParamsOptionStruct = {
+        test: {
+          title: '',
+          type: SchemaTypeStruct.object,
+        },
+      };
+
+      if (item.dep) {
+        const props = (item!.dep as DefinitionsItemStruct)!.properties || {};
+        const keys = Object.keys(props);
+        keys.forEach((key: string) => {
+          const prop = props[key];
+          commentParams[key] = {
+            title: prop.description,
+            description: prop.description,
+            type: getStrTypeBySwaggerType(prop.type),
+            required: prop.required,
+          };
+        });
+      }
+
+      delete commentParams.test;
+      addComment(dep, 'leading', addCommentBlock({
+        name: item.name,
+        desc: item.description || '',
+        params: commentParams,
+      }));
+      ast.program.body.push(dep);
+    }
+    const node = tsPropertySignature(
+      identifier(item.name),
+      tsTypeAnnotation(tsTypeReference(identifier(upperCamelize(createStructName(item.name))))),
+    );
+
+    addComment(node, 'leading', item?.description || createStructName(item.name) || '', true);
+
+    return node;
+  }
+  if (item.type) {
+    const node = tsPropertySignature(
+      identifier(item.name),
+      getTsTypeBySwaggerType(item.type),
+    );
+    addComment(node, 'leading', optionalParams(item?.description || item?.name || '', item.required), true);
+    return node;
+  }
+  return tsPropertySignature(
+    identifier(createStructName(item.name)),
+    getTsTypeBySwaggerType(SchemaTypeStruct.object),
+  );
+}
+
+/**
+ * 根据参数列表创建interface body
+ * @param {RequestParamStruct[]} params  参数列表
+ * @param {File} ast     抽象语法树
+ */
+function createRequestInterfaceBodyByParams(
+  params: RequestParamStruct[],
+  ast: File,
+): TSInterfaceBody {
+  return tsInterfaceBody(
+    params.map<TSTypeElement>(
+      (item: RequestParamStruct) => createInterfaceBodyItem<RequestParamStruct>(item, ast),
+    ),
+  );
+}
+/**
+ * 根据response创建interface body
+ * @param {ResponseBodyStruct} params  响应参数结构
+ * @param {File} ast     抽象语法树
+ */
+function createResponseInterfaceBodyByParams(
+  params: ResponseBodyStruct,
+  ast: File,
+): TSInterfaceBody {
+  return tsInterfaceBody(
+    [createInterfaceBodyItem<ResponseBodyStruct>(params, ast)],
+  );
 }
 
 /**
@@ -54,16 +154,44 @@ function compileRequestParamsStruct(
   const key = Object.keys(curModel)[0];
   const apiStruct = curModel[key];
   const params = apiStruct.parameters;
-  const uris = normalizeUri(uri);
+  const normalizeUriStr = normalizeUri(uri);
 
   if (!params) {
     return;
   }
 
+  const mainInterfaceName = upperCamelize(`${createStructName(`${normalizeUriStr}Request`)}`);
+
   const exportModule = createInterface({
-    name: upperCamelize(uris),
-    body: createInterfaceBodyByParams(params),
+    name: mainInterfaceName,
+    body: createRequestInterfaceBodyByParams(params, ast),
   });
+
+  const mainParams: CommentParamsOptionStruct = {
+    test: {
+      title: '',
+      type: SchemaTypeStruct.string,
+    },
+  };
+  params.forEach((item: RequestParamStruct) => {
+    let type: any;
+    if (item.schema) {
+      type = upperCamelize(`${createStructName(item.name)}`);
+    } else {
+      type = `${item.type}${item.format ? `<${item.format}>` : ''}`;
+    }
+    mainParams[item.name] = {
+      title: item.name,
+      type,
+      description: item.description,
+    };
+  });
+  delete mainParams.test;
+  addComment(exportModule, 'leading', addCommentBlock({
+    name: mainInterfaceName,
+    desc: apiStruct.summary || '',
+    params: mainParams || {},
+  }));
 
   ast.program.body.push(exportModule);
 }

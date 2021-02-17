@@ -1,4 +1,5 @@
-import { DefinitionsItemStruct, SwaggerStruct } from '@/inner/swagger.ts';
+import { DefinitionsProperties, DefinitionsItemStruct, SwaggerStruct } from '@/inner/swagger.ts';
+
 import { File } from '@babel/types';
 import parser from '@babel/parser';
 import fs from 'fs';
@@ -84,7 +85,10 @@ export function resolveRefPaths(ref: string): string[] {
   return ref.substring(2).split('/');
 }
 
-export function resolveSwaggerRef(obj: SwaggerStruct, ref: string): DefinitionsItemStruct {
+export function resolveSwaggerRef(obj: SwaggerStruct, ref?: string): DefinitionsItemStruct | {} {
+  if (!ref) {
+    return {};
+  }
   let target: any = obj;
 
   const refPaths = resolveRefPaths(ref);
@@ -93,4 +97,65 @@ export function resolveSwaggerRef(obj: SwaggerStruct, ref: string): DefinitionsI
   });
 
   return target;
+}
+
+export function numFit(num: number) {
+  return num < 10 ? `0${num}` : num;
+}
+
+export function getDate() {
+  const today = new Date();
+  return `${numFit(today.getFullYear())}-${numFit(today.getMonth() + 1)}-${numFit(today.getDate())}`;
+}
+
+export function addCommentFirst(content: string): string {
+  return `*\n * ${content}`;
+}
+export function addCommentLine(content: string): string {
+  return `\n * ${content}\n`;
+}
+
+export type CommentParamsOptionStruct = {
+  [key: string]: {
+    type: string,
+    format?: string,
+    title?: string,
+    description?: string,
+    required?: boolean
+  }
+};
+
+export function optionalParams(param: string, required: boolean = true): string {
+  return required ? param : `[${param}]`;
+}
+
+export function addCommentParamsLine(
+  name: string,
+  params: CommentParamsOptionStruct,
+  keys = Object.keys(params),
+): string {
+  if (keys.length === 0) {
+    return ' *';
+  }
+  return keys.map((key: string) => ` * @param {${params[key].type}${params[key].format ? `<${params[key].format}>` : ''}} ${optionalParams(key, params[key].required)} ${params[key].title || params[key].description || ''}`).join('\n');
+}
+
+export function addCommentLast(): string {
+  return ' *';
+}
+export function addCommentEmpty(): string {
+  return ' * \n';
+}
+
+export type CommentOptionStruct = {
+  name: string,
+  desc?: string
+  params?: CommentParamsOptionStruct
+};
+export function addCommentBlock(opt: CommentOptionStruct) {
+  return `${addCommentFirst(opt.name)}${opt.desc ? addCommentLine(`@description ${opt.desc}`) : addCommentEmpty()}${addCommentParamsLine(opt.name, opt.params || {})}${addCommentLine(`@date ${getDate()}`)}${addCommentLast()}`;
+}
+
+export function createStructName(name: string, tailName: string = 'Struct') {
+  return `${name}${tailName}`;
 }

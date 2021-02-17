@@ -37,40 +37,89 @@ export enum SchemaTypeStruct {
     number='number',
 }
 
+export enum FormatType {
+    int32='int32',
+    int64='int64',
+    float='float',
+    double='double',
+    dateTime='date-time'
+}
+
+export interface BaseDepDataStruct {
+    name: string,
+    // 响应描述
+    description: string,
+    schema?: SchemaStruct,
+    dep?: DefinitionsItemStruct | any,
+    type?: SchemaTypeStruct,
+    required?: boolean
+}
+
 export type SchemaStruct = {
     type?: SchemaTypeStruct,
     // 用于表示对象描述所在的位置
-    $refs?: string
+    $ref?: string
     // 对象描述
     items?: SchemaStruct
 };
 
+export interface ResponseBodyStruct extends BaseDepDataStruct{}
+
 export type ResponseStruct = {
-    [key in keyof ResponseCode]: {
-        // 响应描述
-        description: string,
-        schema?: SchemaStruct
-    }
+    [key: string]: ResponseBodyStruct
 };
 
-export type RequestParamStruct = {
+export type DefinitionsProperties = {
+    [key: string]: DefinitionsItemStruct
+}
+export type DefinitionsPropertyItem = {
+    [key: string]: {
+        // 数据类型
+        type: SchemaTypeStruct,
+        // 数据格式，如类型为integer的话，format可能是：int32或int64
+        format: FormatType,
+        // 必填项key列表
+        required: boolean,
+        // 对象属性
+        properties?: DefinitionsPropertyItem,
+        // 标题
+        title?: string,
+        // 描述
+        description?: string,
+    }
+}
+
+export type DefinitionsItemStruct = {
+    // 数据类型
+    type: SchemaTypeStruct,
+    // 数据格式，如类型为integer的话，format可能是：int32或int64
+    format: FormatType,
+    // 必填项key列表
+    required: string[],
+    // 对象属性
+    properties?: DefinitionsPropertyItem,
+    // 标题
+    title?: string,
+    // 字段名
+    name?: string,
+    // 描述
+    description?: string,
+}
+
+export interface RequestParamStruct extends BaseDepDataStruct{
     // 参数是放在queryString还是放在body
     in: string,
     // 参数名称
     name: string,
-    // 参数描述
-    description: string,
     // 是否必传
     required: boolean,
-    // 对象描述
-    schema?: SchemaStruct,
-    // 接口返回结构
-    responses: ResponseStruct,
     // 当前接口是否已经过时，不推荐使用
     deprecated: boolean,
     // 数据类型
-    type?: SchemaTypeStruct.object
-};
+    type?: SchemaTypeStruct,
+    // 数据格式，如类型为integer的话，format可能是：int32或int64
+    format?: FormatType,
+}
 
 export type ApiStruct = {
     [key: string]: {
@@ -85,37 +134,14 @@ export type ApiStruct = {
         // 请求的content-type
         consumes: string[],
         // 请求参数
-        parameters: RequestParamStruct[]
+        parameters: RequestParamStruct[],
+        // 接口返回结构
+        responses: ResponseStruct,
     }
 }
 
 export type SwaggerPathStruct = {
     [key: string]: ApiStruct
-}
-
-export enum FormatType {
-    int32='int32',
-    int64='int64',
-    float='float',
-    double='double',
-    dateTime='date-time'
-}
-
-export type DefinitionsItemStruct = {
-    // 数据类型
-    type: SchemaTypeStruct,
-    // 数据格式，如类型为integer的话，format可能是：int32或int64
-    format: FormatType,
-    // 必填项key列表
-    required: string[],
-    // 对象属性
-    properties?: {
-        [key: string]: DefinitionsItemStruct
-    },
-    // 标题
-    title?: string,
-    // 描述
-    description?: string
 }
 
 export interface Definitions {
