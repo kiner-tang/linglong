@@ -49,6 +49,7 @@ export interface BaseDepDataStruct {
     name: string,
     // 响应描述
     description: string,
+    format?: FormatType,
     schema?: SchemaStruct,
     dep?: DefinitionsItemStruct | any,
     type?: SchemaTypeStruct,

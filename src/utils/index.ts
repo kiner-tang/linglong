@@ -1,8 +1,14 @@
 import { DefinitionsProperties, DefinitionsItemStruct, SwaggerStruct } from '@/inner/swagger.ts';
 
-import { File } from '@babel/types';
+import {
+  File,
+} from '@babel/types';
 import parser from '@babel/parser';
 import fs from 'fs';
+
+const {
+  tsOptionalType,
+} = require('@babel/types');
 
 export function getObjType(val: any) {
   return Object.prototype.toString.call(val);
@@ -93,7 +99,7 @@ export function resolveSwaggerRef(obj: SwaggerStruct, ref?: string): Definitions
 
   const refPaths = resolveRefPaths(ref);
   refPaths.forEach((key: string) => {
-    target = target[key];
+    target = target[key] || {};
   });
 
   return target;
@@ -141,7 +147,7 @@ export function addCommentParamsLine(
 }
 
 export function addCommentLast(): string {
-  return ' *';
+  return ' ';
 }
 export function addCommentEmpty(): string {
   return ' * \n';
@@ -158,4 +164,8 @@ export function addCommentBlock(opt: CommentOptionStruct) {
 
 export function createStructName(name: string, tailName: string = 'Struct') {
   return `${name}${tailName}`;
+}
+
+export function optionalType(type: string, isRequired: boolean = true): string {
+  return isRequired ? type : `${type}?`;
 }

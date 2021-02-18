@@ -14,10 +14,12 @@ import {
   CommentParamsOptionStruct,
   createBaseAst, createStructName,
   getBaseApiFromApiPath,
-  normalizeUri, optionalParams,
+  normalizeUri, optionalParams, optionalType,
   upperCamelize,
 } from '@/utils/index.ts';
-import { File, TSInterfaceBody, TSTypeElement } from '@babel/types';
+import {
+  File, TSInterfaceBody, tsOptionalType, TSTypeElement,
+} from '@babel/types';
 
 const {
   tsInterfaceBody,
@@ -41,7 +43,7 @@ function createObjectInterface(dep: DefinitionsItemStruct, ast: File): TSInterfa
   return tsInterfaceBody(propKeys.map((propKey: string) => {
     const prop = dep!.properties![propKey];
     const node = tsPropertySignature(
-      identifier(propKey),
+      identifier(optionalType(propKey, prop.required)),
       getTsTypeBySwaggerType(prop?.type, prop?.format),
     );
     addComment(node, 'leading', prop?.description || prop?.title || '', true);
@@ -87,7 +89,7 @@ function createInterfaceBodyItem<T extends BaseDepDataStruct>(item: T, ast: File
       ast.program.body.push(dep);
     }
     const node = tsPropertySignature(
-      identifier(item.name),
+      identifier(optionalType(item.name, item.required)),
       tsTypeAnnotation(tsTypeReference(identifier(upperCamelize(createStructName(item.name))))),
     );
 
@@ -97,14 +99,14 @@ function createInterfaceBodyItem<T extends BaseDepDataStruct>(item: T, ast: File
   }
   if (item.type) {
     const node = tsPropertySignature(
-      identifier(item.name),
-      getTsTypeBySwaggerType(item.type),
+      identifier(optionalType(item.name, item.required)),
+      getTsTypeBySwaggerType(item.type, item.format),
     );
     addComment(node, 'leading', optionalParams(item?.description || item?.name || '', item.required), true);
     return node;
   }
   return tsPropertySignature(
-    identifier(createStructName(item.name)),
+    identifier(createStructName(optionalType(item.name, item.required))),
     getTsTypeBySwaggerType(SchemaTypeStruct.object),
   );
 }
@@ -159,14 +161,16 @@ function compileRequestParamsStruct(
   if (!params) {
     return;
   }
-
+  // 生成一个请求参数Interface名称
   const mainInterfaceName = upperCamelize(`${createStructName(`${normalizeUriStr}Request`)}`);
 
+  // 创建一个到处模块
   const exportModule = createInterface({
     name: mainInterfaceName,
     body: createRequestInterfaceBodyByParams(params, ast),
   });
 
+  // 辅助用于生成代码注释的对象
   const mainParams: CommentParamsOptionStruct = {
     test: {
       title: '',
@@ -184,15 +188,18 @@ function compileRequestParamsStruct(
       title: item.name,
       type,
       description: item.description,
+      required: item.required,
     };
   });
   delete mainParams.test;
+  // 在interface上添加代码注释
   addComment(exportModule, 'leading', addCommentBlock({
     name: mainInterfaceName,
     desc: apiStruct.summary || '',
     params: mainParams || {},
   }));
 
+  // 将模块代码加入到抽象语法树program的body中
   ast.program.body.push(exportModule);
 }
 
@@ -209,13 +216,14 @@ function compileResponseDataStruct(
   ast: File,
   curModel: ApiStruct,
 ): void {
-
+  // TODO 对响应返回数据的编译解析
 }
 
+// 编译主入口
 export function modelCompiler(data: SwaggerStruct): File[] {
   const asts: File[] = [];
 
-  Object.keys(data.paths).forEach((uri: string) => {
+  Object.keys(data.paths || {}).forEach((uri: string) => {
     const baseApi: string = getBaseApiFromApiPath(uri);
     const curModel: ApiStruct = data.paths[uri];
     const ast = createBaseAst();

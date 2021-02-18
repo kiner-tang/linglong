@@ -1,7 +1,7 @@
 import { FormatType, SchemaTypeStruct } from '@/inner/swagger.ts';
 import {
   TSExpressionWithTypeArguments,
-  TSInterfaceBody,
+  TSInterfaceBody, TSType,
   TSTypeAnnotation,
 } from '@babel/types';
 
@@ -9,7 +9,7 @@ const {
   tsArrayType, tsInterfaceDeclaration, exportNamedDeclaration, identifier, tsAnyKeyword,
   tsNumberKeyword, tsStringKeyword,
   tsTypeAnnotation, tsBigIntKeyword,
-  tsObjectKeyword,
+  tsObjectKeyword, tsOptionalType,
 } = require('@babel/types');
 
 export type CreateInterfaceOptionStruct = {
@@ -31,6 +31,7 @@ export function createInterface(opt: CreateInterfaceOptionStruct) {
 export function getTsTypeBySwaggerType(
   swaggerType?: SchemaTypeStruct,
   formType?: FormatType,
+  required?: boolean,
 ): TSTypeAnnotation {
   switch (swaggerType) {
     case SchemaTypeStruct.integer:

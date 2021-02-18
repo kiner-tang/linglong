@@ -14,8 +14,8 @@ export type Methods = | 'get' | 'GET'
 export interface BaseModelOptionStruct {
     method: Methods,
     data: Record<string, any>,
-    header: Record<string, any>,
-    withCredentials: boolean
+    header?: Record<string, any>,
+    withCredentials?: boolean
 }
 
 /**

@@ -32,7 +32,7 @@ export function resolveResponse(
 }
 
 export function transformData(data: SwaggerStruct): void {
-  const paths = Object.keys(data.paths);
+  const paths = Object.keys(data.paths || {});
   paths.forEach((path: string) => {
     const api: ApiStruct = data.paths[path];
     const methods = Object.keys(api);
