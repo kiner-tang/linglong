@@ -3,7 +3,7 @@ node ./dist/nodeTsTpl.cjs.js \
     --sourceDir=build \
     --baseUrl=BASE_API_HOST \
     --targetLang=Typescript \
-    --mock=false
+    --mock=true
 
 # node ./dist/nodeTsTpl.cjs.js \
 #     --ds=http://testk12wx.100.com/v2/api-docs \

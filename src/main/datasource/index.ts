@@ -1,8 +1,7 @@
 import { SwaggerStruct } from '@/inner/swagger.ts';
 import axios, { AxiosResponse } from 'axios';
 // @ts-ignore
-import { mockData } from '@/mock/api-docs.ts';
-// import { mockData } from '@/mock/example.ts';
+import { mockData } from '@/mock/example.ts';
 
 // 从远程接口文档获取数据源
 export async function getDsByRemote(url: string): Promise<SwaggerStruct> {
